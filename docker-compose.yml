@@ -1,0 +1,112 @@
+name: sport
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sport-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - sport-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sport-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sport-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sport-frontend
+    restart: unless-stopped
+    networks:
+      - sport-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: sport-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+      - grafana
+    networks:
+      - sport-net
+      - frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=frontend"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.sport-http.rule=Host(`sport.xavierchapouille.ddns.net`)"
+      - "traefik.http.routers.sport-http.entrypoints=web"
+      - "traefik.http.routers.sport-http.middlewares=sport-redirect"
+      - "traefik.http.middlewares.sport-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.sport-redirect.redirectscheme.permanent=true"
+      # HTTPS
+      - "traefik.http.routers.sport.rule=Host(`sport.xavierchapouille.ddns.net`)"
+      - "traefik.http.routers.sport.entrypoints=websecure"
+      - "traefik.http.services.sport.loadbalancer.server.port=80"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sport-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_SERVER_ROOT_URL: https://sport.xavierchapouille.ddns.net/grafana
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sport-net
+
+  adminer:
+    image: adminer:latest
+    container_name: sport-adminer
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - sport-net
+
+volumes:
+  postgres_data:
+  grafana_data:
+
+networks:
+  sport-net:
+    driver: bridge
+  frontend:
+    external: true
