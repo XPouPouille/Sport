@@ -62,15 +62,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=frontend"
-      # HTTP → HTTPS redirect
-      - "traefik.http.routers.sport-http.rule=Host(`sport.xavierchapouille.ddns.net`)"
-      - "traefik.http.routers.sport-http.entrypoints=web"
-      - "traefik.http.routers.sport-http.middlewares=sport-redirect"
-      - "traefik.http.middlewares.sport-redirect.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.sport-redirect.redirectscheme.permanent=true"
-      # HTTPS
       - "traefik.http.routers.sport.rule=Host(`sport.xavierchapouille.ddns.net`)"
-      - "traefik.http.routers.sport.entrypoints=websecure"
+      - "traefik.http.routers.sport.entrypoints=web"
       - "traefik.http.services.sport.loadbalancer.server.port=80"
 
   grafana:
@@ -80,7 +73,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
-      GF_SERVER_ROOT_URL: https://sport.xavierchapouille.ddns.net/grafana
+      GF_SERVER_ROOT_URL: http://sport.xavierchapouille.ddns.net/grafana
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
     volumes:
