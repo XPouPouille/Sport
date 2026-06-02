@@ -140,7 +140,7 @@ app.delete('/logs/:id', auth, async (req, res) => {
 
 // --- Stats (for charts) ---
 app.get('/stats', auth, async (req, res) => {
-    const { item_id, period } = req.query;
+    const { item_id, period, user_id } = req.query;
     const periods = {
         '1w': "NOW() - INTERVAL '7 days'",
         '1m': "NOW() - INTERVAL '1 month'",
@@ -150,11 +150,25 @@ app.get('/stats', auth, async (req, res) => {
         'all': "'1970-01-01'"
     };
     const since = periods[period] || periods['all'];
+
+    // Determine user filter
+    let userFilter = '';
+    const params = [item_id];
+    if (user_id === 'all' && req.user.role === 'admin') {
+        // no user filter — aggregate all users
+    } else if (user_id && user_id !== 'me' && req.user.role === 'admin') {
+        params.push(Number(user_id));
+        userFilter = `AND user_id = $${params.length}`;
+    } else {
+        params.push(req.user.id);
+        userFilter = `AND user_id = $${params.length}`;
+    }
+
     const result = await pool.query(
         `SELECT DATE(logged_at) as date, SUM(quantity) as total
-         FROM logs WHERE user_id = $1 AND item_id = $2 AND logged_at >= ${since}
+         FROM logs WHERE item_id = $1 ${userFilter} AND logged_at >= ${since}
          GROUP BY DATE(logged_at) ORDER BY date ASC`,
-        [req.user.id, item_id]
+        params
     );
     res.json(result.rows);
 });

@@ -28,5 +28,5 @@ export const api = {
   getLogs: (params = {}) => request('GET', '/logs?' + new URLSearchParams(params)),
   createLog: (data) => request('POST', '/logs', data),
   deleteLog: (id) => request('DELETE', `/logs/${id}`),
-  getStats: (item_id, period) => request('GET', `/stats?item_id=${item_id}&period=${period}`),
+  getStats: (item_id, period, user_id = 'me') => request('GET', `/stats?item_id=${item_id}&period=${period}&user_id=${user_id}`),
 };
