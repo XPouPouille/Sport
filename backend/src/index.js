@@ -154,12 +154,14 @@ app.get('/stats', auth, async (req, res) => {
     // Determine user filter
     let userFilter = '';
     const params = [item_id];
-    if (user_id === 'all' && req.user.role === 'admin') {
-        // no user filter — aggregate all users
+    if (user_id === 'all') {
+        // no user filter — aggregate all users (available to everyone)
     } else if (user_id && user_id !== 'me' && req.user.role === 'admin') {
+        // specific user — admin only
         params.push(Number(user_id));
         userFilter = `AND user_id = $${params.length}`;
     } else {
+        // default: current user
         params.push(req.user.id);
         userFilter = `AND user_id = $${params.length}`;
     }
