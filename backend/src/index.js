@@ -15,12 +15,15 @@ app.use(cors());
 app.use(express.json());
 
 // --- Mailer ---
-const mailer = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
+const mailerConfig = {
+    host: process.env.SMTP_HOST || 'mailpit',
+    port: Number(process.env.SMTP_PORT) || 1025,
     secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-});
+};
+if (process.env.SMTP_USER) {
+    mailerConfig.auth = { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS };
+}
+const mailer = nodemailer.createTransport(mailerConfig);
 
 // --- Auth middleware ---
 function auth(req, res, next) {

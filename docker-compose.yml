@@ -32,15 +32,17 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3001
       APP_URL: ${APP_URL}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_SECURE: ${SMTP_SECURE}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASS: ${SMTP_PASS}
-      SMTP_FROM: ${SMTP_FROM}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      SMTP_FROM: ${SMTP_FROM:-Sport Tracker <noreply@sport.local>}
     depends_on:
       postgres:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     networks:
       - sport-net
 
@@ -91,6 +93,28 @@ services:
         condition: service_healthy
     networks:
       - sport-net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: sport-mailpit
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_UI_AUTH: ${MAILPIT_USER:-admin}:${MAILPIT_PASSWORD:-changeme_mail}
+      # Relay optionnel vers SMTP externe (décommenter si besoin)
+      # MP_SMTP_RELAY_HOST: smtp.gmail.com
+      # MP_SMTP_RELAY_PORT: 587
+      # MP_SMTP_RELAY_USER: votre@gmail.com
+      # MP_SMTP_RELAY_PASSWORD: app_password
+    networks:
+      - sport-net
+      - frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=frontend"
+      - "traefik.http.routers.sport-mail.rule=Host(`mail.xavierchapouille.ddns.net`)"
+      - "traefik.http.routers.sport-mail.entrypoints=web"
+      - "traefik.http.services.sport-mail.loadbalancer.server.port=8025"
 
   adminer:
     image: adminer:latest
