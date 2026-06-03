@@ -9,6 +9,9 @@ ALTER TABLE goals
 ALTER TABLE logs
     ALTER COLUMN quantity TYPE NUMERIC(10,2);
 
+ALTER TABLE logs DROP CONSTRAINT IF EXISTS logs_quantity_check;
+ALTER TABLE logs ADD CONSTRAINT logs_quantity_check CHECK (quantity >= 0);
+
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

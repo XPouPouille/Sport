@@ -35,7 +35,7 @@ CREATE TABLE logs (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    quantity NUMERIC(10,2) NOT NULL CHECK (quantity > 0),
+    quantity NUMERIC(10,2) NOT NULL CHECK (quantity >= 0),
     logged_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     note TEXT
 );

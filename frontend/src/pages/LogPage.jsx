@@ -71,7 +71,7 @@ export default function LogPage() {
             <div className="form-group">
               <label>Quantité {selectedItem ? `(${selectedItem.unit})` : ''}</label>
               <input
-                type="number" min="0.01" step="0.01"
+                type="number" min="0" step="0.01"
                 value={form.quantity}
                 onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
                 required
