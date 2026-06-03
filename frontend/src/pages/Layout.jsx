@@ -8,6 +8,7 @@ const navItems = [
   { path: '/items',     icon: '📋', label: 'Exercices' },
   { path: '/log',       icon: '✏️', label: 'Enregistrer' },
   { path: '/stats',     icon: '📈', label: 'Statistiques' },
+  { path: '/profile',   icon: '👤', label: 'Mon profil' },
 ];
 
 export default function Layout() {

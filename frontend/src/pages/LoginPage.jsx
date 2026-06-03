@@ -5,7 +5,7 @@ import { useAuth } from '../AuthContext.jsx';
 
 export default function LoginPage() {
   const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot'
-  const [form, setForm] = useState({ username: '', email: '', password: '' });
+  const [form, setForm] = useState({ username: '', email: '', password: '', phone: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const { login } = useAuth();
@@ -71,6 +71,12 @@ export default function LoginPage() {
               <label>Mot de passe</label>
               <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
             </div>
+            {mode === 'register' && (
+              <div className="form-group">
+                <label>Téléphone (opt.)</label>
+                <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+33 6 00 00 00 00" />
+              </div>
+            )}
             <button type="submit" className="btn btn-primary w-full">
               {mode === 'login' ? 'Se connecter' : "S'inscrire"}
             </button>

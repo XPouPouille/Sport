@@ -38,6 +38,7 @@ services:
       SMTP_USER: ""
       SMTP_PASS: ""
       SMTP_FROM: ${SMTP_FROM:-Sport Tracker <noreply@sport.local>}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,6 +94,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - sport-net
+
+  telegram-bot:
+    build:
+      context: ./telegram-bot
+      dockerfile: Dockerfile
+    container_name: sport-telegram-bot
+    restart: unless-stopped
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
     networks:
       - sport-net
 

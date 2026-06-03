@@ -9,6 +9,7 @@ import ItemsPage from './pages/ItemsPage.jsx';
 import LogPage from './pages/LogPage.jsx';
 import StatsPage from './pages/StatsPage.jsx';
 import AdminPage from './pages/AdminPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="log" element={<LogPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="admin" element={<AdminPage />} />
+            <Route path="profile" element={<ProfilePage />} />
           </Route>
         </Routes>
       </BrowserRouter>
