@@ -17,6 +17,9 @@ async function request(method, path, body) {
 export const api = {
   login: (data) => request('POST', '/auth/login', data),
   register: (data) => request('POST', '/auth/register', data),
+  forgotPassword: (email) => request('POST', '/auth/forgot-password', { email }),
+  validateResetToken: (token) => request('GET', `/auth/reset-password/${token}`),
+  resetPassword: (token, password) => request('POST', `/auth/reset-password/${token}`, { password }),
   getUsers: () => request('GET', '/users'),
   deleteUser: (id) => request('DELETE', `/users/${id}`),
   patchUserRole: (id, role) => request('PATCH', `/users/${id}/role`, { role }),

@@ -19,7 +19,7 @@ export default function DashboardPage() {
 
   const goalMap = Object.fromEntries(goals.map(g => [g.item_id, g]));
   const todayTotals = {};
-  logs.forEach(l => { todayTotals[l.item_id] = (todayTotals[l.item_id] || 0) + l.quantity; });
+  logs.forEach(l => { todayTotals[l.item_id] = (todayTotals[l.item_id] || 0) + Number(l.quantity); });
 
   const itemsWithGoals = items.filter(i => goalMap[i.id]);
 
@@ -40,20 +40,43 @@ export default function DashboardPage() {
         {itemsWithGoals.map(item => {
           const goal = goalMap[item.id];
           const done = todayTotals[item.id] || 0;
-          const pct = Math.min(100, Math.round((done / goal.target) * 100));
+          const target = Number(goal.target);
+          const isMax = goal.goal_type === 'max';
+          const pct = Math.min(100, Math.round((done / target) * 100));
+          const exceeded = isMax && done > target;
+          const reached = !isMax && done >= target;
+
+          let barColor = 'var(--accent)';
+          if (exceeded) barColor = 'var(--danger)';
+          else if (reached) barColor = 'var(--success)';
+
           return (
             <div key={item.id} className="card">
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <div style={{ fontWeight: 600 }}>{item.name}</div>
-                  <div className="text-muted">{item.unit} · objectif {goal.period === 'daily' ? 'quotidien' : 'hebdo'}</div>
+                  <div className="text-muted">
+                    {item.unit} · {isMax ? '⬇️ max' : '⬆️ min'} · {goal.period === 'daily' ? 'quotidien' : 'hebdo'}
+                  </div>
                 </div>
-                <div className="stat-val" style={{ fontSize: '1.5rem' }}>{done}<span style={{ fontSize: '.85rem', color: 'var(--muted)' }}>/{goal.target}</span></div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: exceeded ? 'var(--danger)' : reached ? 'var(--success)' : 'var(--accent)' }}>
+                    {done}
+                  </div>
+                  <div className="text-muted" style={{ fontSize: '.82rem' }}>/ {target} {item.unit}</div>
+                </div>
               </div>
               <div className="progress-wrap">
-                <div className={`progress-bar ${pct >= 100 ? 'done' : ''}`} style={{ width: pct + '%' }} />
+                <div
+                  className="progress-bar"
+                  style={{ width: pct + '%', background: barColor }}
+                />
               </div>
-              <div className="text-muted mt-2">{pct}% accompli</div>
+              <div className="flex justify-between mt-2">
+                <span className="text-muted">{pct}% accompli</span>
+                {exceeded && <span className="text-danger" style={{ fontSize: '.82rem' }}>⚠️ Objectif max dépassé</span>}
+                {reached && !isMax && <span className="text-success" style={{ fontSize: '.82rem' }}>✓ Objectif atteint</span>}
+              </div>
             </div>
           );
         })}

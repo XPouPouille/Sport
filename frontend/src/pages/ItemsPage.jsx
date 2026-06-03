@@ -37,7 +37,7 @@ export default function ItemsPage() {
   async function saveGoal(item_id) {
     const g = goalForm[item_id];
     if (!g?.target) return;
-    await api.setGoal({ item_id, target: Number(g.target), period: g.period || 'daily' });
+    await api.setGoal({ item_id, target: Number(g.target), goal_type: g.goal_type || 'min', period: g.period || 'daily' });
     load();
   }
 
@@ -79,12 +79,16 @@ export default function ItemsPage() {
         <div className="card-title">Tous les exercices</div>
         <table>
           <thead>
-            <tr><th>Nom</th><th>Unité</th><th>Objectif</th><th>Période</th><th></th></tr>
+            <tr><th>Nom</th><th>Unité</th><th>Objectif</th><th>Type</th><th>Période</th><th></th></tr>
           </thead>
           <tbody>
             {items.map(item => {
               const g = goalMap[item.id];
-              const gf = goalForm[item.id] || { target: g?.target || '', period: g?.period || 'daily' };
+              const gf = goalForm[item.id] || {
+                target: g?.target ?? '',
+                goal_type: g?.goal_type ?? 'min',
+                period: g?.period ?? 'daily'
+              };
               return (
                 <tr key={item.id}>
                   <td>
@@ -94,11 +98,21 @@ export default function ItemsPage() {
                   <td>{item.unit}</td>
                   <td>
                     <input
-                      type="number" min="1" style={{ width: 80 }}
+                      type="number" min="0.01" step="0.01" style={{ width: 80 }}
                       value={gf.target}
                       onChange={e => setGoalForm(prev => ({ ...prev, [item.id]: { ...gf, target: e.target.value } }))}
                       placeholder="—"
                     />
+                  </td>
+                  <td>
+                    <select
+                      value={gf.goal_type}
+                      onChange={e => setGoalForm(prev => ({ ...prev, [item.id]: { ...gf, goal_type: e.target.value } }))}
+                      style={{ minWidth: 80 }}
+                    >
+                      <option value="min">⬆️ Min</option>
+                      <option value="max">⬇️ Max</option>
+                    </select>
                   </td>
                   <td>
                     <select value={gf.period}

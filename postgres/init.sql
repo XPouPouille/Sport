@@ -23,7 +23,8 @@ CREATE TABLE goals (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    target INTEGER NOT NULL,
+    target NUMERIC(10,2) NOT NULL,
+    goal_type VARCHAR(3) NOT NULL DEFAULT 'min' CHECK (goal_type IN ('min', 'max')),
     period VARCHAR(10) NOT NULL DEFAULT 'daily' CHECK (period IN ('daily', 'weekly')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, item_id)
@@ -34,9 +35,18 @@ CREATE TABLE logs (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    quantity NUMERIC(10,2) NOT NULL CHECK (quantity > 0),
     logged_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     note TEXT
+);
+
+-- Password reset tokens
+CREATE TABLE password_reset_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(64) UNIQUE NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Indexes for graph queries

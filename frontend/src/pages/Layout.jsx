@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext.jsx';
+import { useSwipe } from '../useSwipe.js';
 
 const navItems = [
   { path: '/dashboard', icon: '📊', label: 'Dashboard' },
@@ -15,10 +16,16 @@ export default function Layout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
+  useSwipe(user?.role === 'admin');
+
+  const allNavItems = user?.role === 'admin'
+    ? [...navItems, { path: '/admin', icon: '⚙️', label: 'Administration' }]
+    : navItems;
+
   return (
     <div className="layout">
+      {/* Sidebar desktop */}
       <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}>
-        {/* Header */}
         <div className="sidebar-header">
           {!collapsed && <div className="sidebar-logo">Sport Tracker</div>}
           <button
@@ -30,8 +37,7 @@ export default function Layout() {
           </button>
         </div>
 
-        {/* Nav */}
-        {navItems.map(item => (
+        {allNavItems.map(item => (
           <div
             key={item.path}
             className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
@@ -43,20 +49,8 @@ export default function Layout() {
           </div>
         ))}
 
-        {user?.role === 'admin' && (
-          <div
-            className={`nav-item ${location.pathname === '/admin' ? 'active' : ''}`}
-            onClick={() => navigate('/admin')}
-            title={collapsed ? 'Administration' : ''}
-          >
-            <span className="nav-icon">⚙️</span>
-            {!collapsed && <span className="nav-label">Administration</span>}
-          </div>
-        )}
-
         <div style={{ flex: 1 }} />
 
-        {/* Footer */}
         <div className="sidebar-footer">
           {!collapsed && (
             <div className="text-muted" style={{ fontSize: '.82rem', marginBottom: 8 }}>
@@ -73,9 +67,27 @@ export default function Layout() {
         </div>
       </aside>
 
-      <main className="main-content">
+      <main className="main-content main-with-bottom-nav">
         <Outlet />
       </main>
+
+      {/* Bottom nav mobile */}
+      <nav className="bottom-nav">
+        {allNavItems.map(item => (
+          <div
+            key={item.path}
+            className={`bottom-nav-item ${location.pathname === item.path ? 'active' : ''}`}
+            onClick={() => navigate(item.path)}
+          >
+            <span className="bottom-nav-icon">{item.icon}</span>
+            <span className="bottom-nav-label">{item.label}</span>
+          </div>
+        ))}
+        <div className="bottom-nav-item" onClick={logout}>
+          <span className="bottom-nav-icon">🚪</span>
+          <span className="bottom-nav-label">Quitter</span>
+        </div>
+      </nav>
     </div>
   );
 }

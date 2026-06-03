@@ -51,7 +51,7 @@ export default function LogPage() {
     <>
       <div className="topbar"><h1>Enregistrer une séance</h1></div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
         <div className="card">
           <div className="card-title">Nouvelle entrée</div>
           {error && <div className="alert alert-error">{error}</div>}
@@ -70,7 +70,12 @@ export default function LogPage() {
             </div>
             <div className="form-group">
               <label>Quantité {selectedItem ? `(${selectedItem.unit})` : ''}</label>
-              <input type="number" min="1" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))} required />
+              <input
+                type="number" min="0.01" step="0.01"
+                value={form.quantity}
+                onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
+                required
+              />
             </div>
             <div className="form-group">
               <label>Note (opt.)</label>
@@ -91,7 +96,7 @@ export default function LogPage() {
                 {logs.map(l => (
                   <tr key={l.id}>
                     <td>{l.item_name}</td>
-                    <td>{l.quantity} {l.unit}</td>
+                    <td>{Number(l.quantity)} {l.unit}</td>
                     <td className="text-muted">{l.note || '—'}</td>
                     <td><button className="btn btn-danger btn-sm" onClick={() => deleteLog(l.id)}>✕</button></td>
                   </tr>

@@ -3,13 +3,24 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const JWT_SECRET = process.env.JWT_SECRET;
+const APP_URL = process.env.APP_URL || 'http://localhost';
 
 app.use(cors());
 app.use(express.json());
+
+// --- Mailer ---
+const mailer = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+});
 
 // --- Auth middleware ---
 function auth(req, res, next) {
@@ -48,6 +59,73 @@ app.post('/auth/login', async (req, res) => {
         return res.status(401).json({ error: 'Invalid credentials' });
     const token = jwt.sign({ id: user.id, role: user.role, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, username: user.username, email: user.email, role: user.role } });
+});
+
+// --- Forgot password ---
+app.post('/auth/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    // Always return same message to avoid user enumeration
+    res.json({ message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
+
+    const result = await pool.query('SELECT id, username FROM users WHERE email = $1', [email]);
+    if (!result.rows[0]) return;
+    const user = result.rows[0];
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
+    await pool.query(
+        'DELETE FROM password_reset_tokens WHERE user_id = $1', [user.id]
+    );
+    await pool.query(
+        'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+        [user.id, token, expires]
+    );
+
+    const resetLink = `${APP_URL}/reset-password?token=${token}`;
+    try {
+        await mailer.sendMail({
+            from: process.env.SMTP_FROM || 'Sport Tracker <noreply@sport.local>',
+            to: email,
+            subject: 'Réinitialisation de mot de passe — Sport Tracker',
+            html: `
+                <p>Bonjour ${user.username},</p>
+                <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe :</p>
+                <p><a href="${resetLink}">${resetLink}</a></p>
+                <p>Ce lien est valable <strong>24 heures</strong>.</p>
+                <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
+            `,
+        });
+    } catch (err) {
+        console.error('Mail send error:', err.message);
+    }
+});
+
+app.get('/auth/reset-password/:token', async (req, res) => {
+    const result = await pool.query(
+        `SELECT t.*, u.username FROM password_reset_tokens t
+         JOIN users u ON t.user_id = u.id
+         WHERE t.token = $1 AND t.expires_at > NOW()`,
+        [req.params.token]
+    );
+    if (!result.rows[0]) return res.status(400).json({ error: 'Lien invalide ou expiré.' });
+    res.json({ valid: true, username: result.rows[0].username });
+});
+
+app.post('/auth/reset-password/:token', async (req, res) => {
+    const { password } = req.body;
+    if (!password || password.length < 6) return res.status(400).json({ error: 'Mot de passe trop court (6 caractères min).' });
+
+    const result = await pool.query(
+        `SELECT * FROM password_reset_tokens WHERE token = $1 AND expires_at > NOW()`,
+        [req.params.token]
+    );
+    if (!result.rows[0]) return res.status(400).json({ error: 'Lien invalide ou expiré.' });
+
+    const hash = await bcrypt.hash(password, 10);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, result.rows[0].user_id]);
+    await pool.query('DELETE FROM password_reset_tokens WHERE token = $1', [req.params.token]);
+    res.json({ message: 'Mot de passe mis à jour.' });
 });
 
 // --- Users (admin) ---
@@ -101,11 +179,11 @@ app.get('/goals', auth, async (req, res) => {
 });
 
 app.post('/goals', auth, async (req, res) => {
-    const { item_id, target, period } = req.body;
+    const { item_id, target, goal_type, period } = req.body;
     const result = await pool.query(
-        `INSERT INTO goals (user_id, item_id, target, period) VALUES ($1, $2, $3, $4)
-         ON CONFLICT (user_id, item_id) DO UPDATE SET target = $3, period = $4 RETURNING *`,
-        [req.user.id, item_id, target, period || 'daily']
+        `INSERT INTO goals (user_id, item_id, target, goal_type, period) VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (user_id, item_id) DO UPDATE SET target = $3, goal_type = $4, period = $5 RETURNING *`,
+        [req.user.id, item_id, target, goal_type || 'min', period || 'daily']
     );
     res.json(result.rows[0]);
 });
@@ -151,17 +229,14 @@ app.get('/stats', auth, async (req, res) => {
     };
     const since = periods[period] || periods['all'];
 
-    // Determine user filter
     let userFilter = '';
     const params = [item_id];
     if (user_id === 'all') {
-        // no user filter — aggregate all users (available to everyone)
+        // aggregate all users
     } else if (user_id && user_id !== 'me' && req.user.role === 'admin') {
-        // specific user — admin only
         params.push(Number(user_id));
         userFilter = `AND user_id = $${params.length}`;
     } else {
-        // default: current user
         params.push(req.user.id);
         userFilter = `AND user_id = $${params.length}`;
     }
