@@ -78,15 +78,21 @@ docker compose up -d --build
 
 ---
 
-## Arrêter / mettre à jour
+## Mettre à jour
+
+```bash
+cd ~/Sport
+git pull origin main
+sudo docker compose down
+sudo docker compose up -d --build
+```
+
+## Arrêter / logs
 
 ```bash
 # Arrêter
-docker compose down
-
-# Mettre à jour (rebuild images)
-docker compose up -d --build
+sudo docker compose down
 
 # Voir les logs
-docker compose logs -f
+sudo docker compose logs -f
 ```
